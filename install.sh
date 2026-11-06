@@ -11,8 +11,8 @@
 
 main() {
   set -euo pipefail
-  VERSION="1.1.0"
-  SHA256="0d5c147f9b36be1f8473b3d3ca1510173c94a052dadc129fabda6f7f82afcbd6"
+  VERSION="2.0.0"
+  SHA256="e11d70626238d42041f830baa58e06ff0ac75f7cffb71e5f5d85f44c2d269a0e"
   URL="https://github.com/B0yko/claude-city/releases/download/v$VERSION/Claude-City-$VERSION.zip"
   LABEL="local.claudecity.wallpaper"
   APP="$HOME/Applications/Claude City.app"
