@@ -1,0 +1,130 @@
+#!/bin/bash
+# chute: the developer tool for Claude Parachute (users install with install.sh, see README).
+#
+#   ./chute build            render the video if the scene changed, build the universal app into build/
+#   ./chute render [opts]    force a re-render (render.py video options, e.g. --crf 10), then build
+#   ./chute test             scene tests + the app's self-test
+#   ./chute preview T...     PNG stills at times T (seconds) into build/preview
+#   ./chute gif              the animated preview for the README (docs/preview.gif)
+#   ./chute install          install this checkout's build (same steps as the public installer)
+#   ./chute release X.Y.Z    build, zip, pin the checksum in install.sh, tag, push, publish the GitHub release
+#   ./chute uninstall | status | pause | resume | stop | start | restart | mode ... | battery ...
+#                            passed to install.sh
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_NAME="Claude Parachute.app"
+BUILD="$ROOT/build"
+APP="$BUILD/$APP_NAME"
+PY="$ROOT/.venv/bin/python"
+REPO="B0yko/claude-parachute-wallpaper"
+MIN_MACOS="13.0"
+
+say() { printf '\033[1m%s\033[0m\n' "$*"; }
+
+venv() {
+  if [ ! -x "$PY" ]; then
+    say "creating .venv (numpy, pillow)"
+    python3 -m venv "$ROOT/.venv"
+    "$PY" -m pip install -q numpy pillow
+  fi
+}
+
+cmd_render() {
+  venv
+  mkdir -p "$BUILD"
+  say "rendering posters"
+  "$PY" "$ROOT/render/render.py" poster --out "$BUILD/poster.png"                  # 3456x2234, system wallpaper
+  "$PY" "$ROOT/render/render.py" poster --scale 1 --out "$BUILD/poster-art.png"    # 864x560, first frame in the app
+  say "rendering the 60 s loop (864x560 art grid, 24 fps, HEVC 4:4:4)"
+  "$PY" "$ROOT/render/render.py" video --out "$BUILD/claude-parachute.mp4" "$@"
+}
+
+cmd_app() {
+  say "building $APP_NAME (arm64 + x86_64, macOS $MIN_MACOS+)"
+  rm -rf "$APP" "$BUILD/obj"
+  mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$BUILD/obj"
+  for arch in arm64 x86_64; do
+    swiftc -O -swift-version 5 -target "$arch-apple-macos$MIN_MACOS" -framework AppKit -framework AVFoundation \
+      "$ROOT/player/main.swift" -o "$BUILD/obj/ClaudeChute-$arch"
+  done
+  lipo -create "$BUILD/obj/ClaudeChute-arm64" "$BUILD/obj/ClaudeChute-x86_64" -output "$APP/Contents/MacOS/ClaudeChute"
+  rm -rf "$BUILD/obj"
+  cp "$ROOT/player/Info.plist" "$APP/Contents/Info.plist"
+  cp "$BUILD/claude-parachute.mp4" "$APP/Contents/Resources/"
+  cp "$BUILD/poster-art.png" "$APP/Contents/Resources/poster.png"
+  cp "$BUILD/poster.png" "$APP/Contents/Resources/wallpaper.png"
+  cp "$ROOT/install.sh" "$APP/Contents/Resources/claude-parachute.sh"   # offline control: status, pause, uninstall...
+  codesign --force --sign - "$APP" >/dev/null
+  lipo -info "$APP/Contents/MacOS/ClaudeChute"
+  "$APP/Contents/MacOS/ClaudeChute" --self-test
+}
+
+cmd_build() {
+  local v="$BUILD/claude-parachute.mp4"
+  if [ ! -f "$v" ] || [ "$ROOT/render/scene.py" -nt "$v" ] || [ "$ROOT/render/render.py" -nt "$v" ]; then
+    cmd_render
+  else
+    say "video is up to date"
+  fi
+  cmd_app
+}
+
+cmd_test() {
+  venv
+  "$PY" -m unittest discover -s "$ROOT/render"
+  bash -n "$ROOT/install.sh"
+  if [ -x "$APP/Contents/MacOS/ClaudeChute" ]; then "$APP/Contents/MacOS/ClaudeChute" --self-test; fi
+}
+
+cmd_preview() {
+  venv
+  [ $# -gt 0 ] || set -- 0 9.5 20 30 38.6 47.6 55
+  "$PY" "$ROOT/render/render.py" still --t "$@" --out "$BUILD/preview" --zoom 2
+  open "$BUILD/preview"
+}
+
+cmd_gif() {
+  venv
+  mkdir -p "$ROOT/docs"
+  "$PY" "$ROOT/render/render.py" gif --out "$ROOT/docs/preview.gif"
+  "$PY" "$ROOT/render/render.py" still --t 22 --out "$BUILD/still" --zoom 1
+  cp "$BUILD/still/t22.00.png" "$ROOT/docs/screenshot.png"
+}
+
+gh_b0yko() { GH_TOKEN="$(gh auth token -u B0yko)" gh "$@"; }
+
+cmd_release() {
+  local version="${1:-}"
+  [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "usage: ./chute release X.Y.Z" >&2; exit 1; }
+  [ -z "$(git -C "$ROOT" status --porcelain)" ] || { echo "commit your changes first" >&2; exit 1; }
+  cmd_test
+  cmd_build
+  local zip="$BUILD/Claude-Parachute-$version.zip"
+  rm -f "$zip"
+  ditto -c -k --keepParent "$APP" "$zip"
+  local sha
+  sha="$(shasum -a 256 "$zip" | cut -d' ' -f1)"
+  say "zip $(du -h "$zip" | cut -f1)  sha256 $sha"
+  # pin the release in the public installer
+  sed -i '' -e "s/^  VERSION=\".*\"/  VERSION=\"$version\"/" -e "s/^  SHA256=\".*\"/  SHA256=\"$sha\"/" "$ROOT/install.sh"
+  /bin/bash "$ROOT/install.sh" check --from "$zip"
+  git -C "$ROOT" commit -qam "Release $version" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C "$ROOT" tag -a "v$version" -m "Claude Parachute $version"
+  git -C "$ROOT" push -q origin main "v$version"
+  gh_b0yko release create "v$version" "$zip" --repo "$REPO" --title "Claude Parachute $version" \
+    --notes-file "$ROOT/docs/release-notes.md"
+  say "released v$version"
+}
+
+case "${1:-}" in
+  build) shift; cmd_build "$@" ;;
+  render) shift; cmd_render "$@"; cmd_app ;;
+  test) cmd_test ;;
+  preview) shift; cmd_preview "$@" ;;
+  gif) cmd_gif ;;
+  install) [ -d "$APP" ] || cmd_build; /bin/bash "$ROOT/install.sh" install --from "$APP" ;;
+  release) shift; cmd_release "$@" ;;
+  uninstall|status|pause|resume|stop|start|restart|mode|battery|check) /bin/bash "$ROOT/install.sh" "$@" ;;
+  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
