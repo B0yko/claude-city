@@ -11,7 +11,7 @@
 main() {
   set -euo pipefail
   VERSION="1.1.0"
-  SHA256="__SHA256__"
+  SHA256="0d5c147f9b36be1f8473b3d3ca1510173c94a052dadc129fabda6f7f82afcbd6"
   URL="https://github.com/B0yko/claude-parachute-wallpaper/releases/download/v$VERSION/Claude-Parachute-$VERSION.zip"
   LABEL="local.claudechute.wallpaper"
   APP="$HOME/Applications/Claude Parachute.app"
