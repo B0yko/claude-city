@@ -1,4 +1,4 @@
-"""Claude Parachute: a pixel-art city at dusk. A helicopter flies in, Claude jumps, opens a parachute, lands on a
+"""Claude City: a pixel-art city at dusk. A helicopter flies in, Claude jumps, opens a parachute, lands on a
 roof, packs the canopy, takes the stairs down and leaves in a taxi. Then the helicopter comes around again.
 
 Every pixel is a pure function of the loop time t. Periodic things (stars, clouds, traffic, lights, water, palms)

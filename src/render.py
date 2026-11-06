@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Render Claude Parachute.
+"""Render Claude City.
 
-  render.py video  --out FILE [--seconds N]   the wallpaper video: 864x560, 24 fps, HEVC 4:4:4 (x265, CRF 12)
+  render.py video  --out FILE [--seconds N]   the wallpaper video: 864x560, 24 fps, HEVC 4:4:4, about 3 MB
   render.py poster --out FILE [--scale 4]     frame 0 as PNG: 3456x2234 still wallpaper (4) or the art grid (1)
   render.py still  --out DIR --t T [T...]     stills to look at, scaled by --zoom (default 2)
   render.py gif    --out FILE                 the README preview: the whole loop at 12 fps
@@ -49,7 +49,8 @@ def cmd_video(a):
           "-vf", "scale=out_color_matrix=bt709:out_range=tv:flags=neighbor+full_chroma_int+accurate_rnd,format=yuv444p,"
                  "setparams=color_primaries=bt709:color_trc=iec61966-2-1:colorspace=bt709:range=tv",
           "-c:v", "libx265", "-preset", "slow", "-crf", "12", "-tag:v", "hvc1",
-          "-x265-params", f"keyint={FPS * 4}:min-keyint={FPS * 4}:aq-mode=0:no-sao=1:psy-rd=0:log-level=error:"
+          # one keyframe for the whole loop: the player only ever restarts it from the top, and the file is half the size
+          "-x265-params", f"keyint={n}:min-keyint={n}:aq-mode=0:no-sao=1:psy-rd=0:log-level=error:"
                           "colorprim=bt709:transfer=iec61966-2-1:colormatrix=bt709:range=limited",
           *SRGB, "-an", "-movflags", "+faststart", a.out],
          (frame(r, i / FPS) for i in range(n)))

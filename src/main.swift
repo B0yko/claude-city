@@ -1,4 +1,4 @@
-// Claude Parachute: plays the wallpaper video behind the desktop icons.
+// Claude City: plays the wallpaper video behind the desktop icons.
 //
 // The video is the 864x560 pixel art itself (HEVC 4:4:4, 24 fps); the compositor scales it up with nearest-neighbour
 // sampling. Each screen is covered by tile windows just below the desktop icons: 3x2 tiles over the work area, and
@@ -7,14 +7,14 @@
 // sleep, the screen saver runs, the screen is locked, another user is active, Low Power Mode is on or the Mac runs
 // hot. It never holds a power assertion.
 //
-//   ClaudeChute                       run (the LaunchAgent starts this)
-//   ClaudeChute --send pause|resume   control the running instance
-//   ClaudeChute --set-wallpaper FILE  set FILE as the desktop picture on every screen
-//   ClaudeChute --self-test           check the rules, the tile layout and the bundled video
+//   ClaudeCity                       run (the LaunchAgent starts this)
+//   ClaudeCity --send pause|resume   control the running instance
+//   ClaudeCity --set-wallpaper FILE  set FILE as the desktop picture on every screen
+//   ClaudeCity --self-test           check the rules, the tile layout and the bundled video
 import AppKit
 import AVFoundation
 
-let label = "local.claudechute.wallpaper"
+let label = "local.claudecity.wallpaper"
 
 func log(_ s: String) {
     let f = DateFormatter()
@@ -343,7 +343,7 @@ func argument(_ flag: String) -> String? {
     return a[i + 1]
 }
 
-let video = Bundle.main.url(forResource: "claude-parachute", withExtension: "mp4")
+let video = Bundle.main.url(forResource: "claude-city", withExtension: "mp4")
 
 if CommandLine.arguments.contains("--self-test") {
     exit(selfTest(video: video))
@@ -369,7 +369,7 @@ if let file = argument("--set-wallpaper") {
     exit(ok ? 0 : 1)
 }
 guard let video else {
-    log("claude-parachute.mp4 is missing from the app")
+    log("claude-city.mp4 is missing from the app")
     exit(2)
 }
 if let id = Bundle.main.bundleIdentifier, NSRunningApplication.runningApplications(withBundleIdentifier: id).count > 1 {

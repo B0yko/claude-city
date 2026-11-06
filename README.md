@@ -1,19 +1,22 @@
-# Claude Parachute
+# Claude City
 
-Animated pixel-art wallpaper for macOS: Claude jumps out of a helicopter over a city at sunset.
+Animated pixel-art wallpaper for macOS: Claude jumps out of a helicopter over a neon city at sunset, lands on a
+rooftop and leaves in a taxi.
 
-![Claude Parachute](preview.gif)
+![Claude City](preview.gif)
 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/B0yko/claude-parachute-wallpaper/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/B0yko/claude-city/main/install.sh | bash
 ```
+
+Run it again to update: the new version replaces the old one and nothing is left behind.
 
 Uninstall (your previous wallpaper comes back):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/B0yko/claude-parachute-wallpaper/main/install.sh | bash -s uninstall
+curl -fsSL https://raw.githubusercontent.com/B0yko/claude-city/main/install.sh | bash -s uninstall
 ```
 
 `pause`, `resume` and `status` work the same way.
