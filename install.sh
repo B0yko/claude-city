@@ -47,7 +47,7 @@ remove_installed() {
     defaults delete "$label" >/dev/null 2>&1 || true
   done
   rm -rf -- "${APP:?}" "${OLD_APP:?}"
-  rm -f -- "$LOG" "$HOME/Library/Logs/ClaudeChute.log" "$HOME/Pictures/Claude Parachute.png" "$DATA/poster.png"
+  rm -f -- "$LOG" "$HOME/Library/Logs/ClaudeChute.log"
   mkdir -p "$DATA"
   if [ -f "$OLD_DATA/wallpaper-Index.plist" ] && [ ! -f "$DATA/wallpaper-Index.plist" ]; then
     mv "$OLD_DATA/wallpaper-Index.plist" "$DATA/wallpaper-Index.plist"
@@ -78,10 +78,17 @@ install() {
   mkdir -p "$HOME/Applications" "$(dirname "$PLIST")" "$(dirname "$LOG")"
   ditto "$TMP/Claude City.app" "$APP"
 
-  # remember your wallpaper once (updates keep the original), then show a still frame of the scene
+  # remember your wallpaper once (updates keep the original), then show a still frame of the scene. The poster gets
+  # a new file name each time: macOS ignores a "change" to the path it already shows, and deleting the file it shows
+  # first would drop it back to the default picture. So: new file, switch to it, then delete the older posters.
   [ -f "$DATA/wallpaper-Index.plist" ] || cp "$STORE" "$DATA/wallpaper-Index.plist" 2>/dev/null || true
-  cp "$APP/Contents/Resources/wallpaper.png" "$DATA/poster.png"
-  "$BIN" --set-wallpaper "$DATA/poster.png" || true
+  local poster old
+  poster="$DATA/poster-$(date +%Y%m%d%H%M%S).png"
+  cp "$APP/Contents/Resources/wallpaper.png" "$poster"
+  "$BIN" --set-wallpaper "$poster" || true
+  for old in "$DATA"/poster*.png "$HOME/Pictures/Claude Parachute.png"; do
+    [ "$old" = "$poster" ] || rm -f -- "$old"
+  done
 
   cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

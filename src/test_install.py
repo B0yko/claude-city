@@ -3,6 +3,7 @@ is touched. Checks that an update leaves no old copies behind and that uninstall
 import os
 import subprocess
 import tempfile
+import time
 import unittest
 
 INSTALL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "install.sh")
@@ -69,8 +70,13 @@ class InstallerTest(unittest.TestCase):
         plist = self.h("Library/LaunchAgents/local.claudecity.wallpaper.plist")
         self.assertEqual(subprocess.run(["plutil", "-lint", plist], capture_output=True).returncode, 0)
         self.assertIn("Claude City.app/Contents/MacOS/ClaudeCity", self.read("Library/LaunchAgents/local.claudecity.wallpaper.plist"))
-        self.assertEqual(sorted(os.listdir(self.h("Library/Application Support/Claude City"))),
-                         ["poster.png", "wallpaper-Index.plist"])
+        data = sorted(os.listdir(self.h("Library/Application Support/Claude City")))
+        posters = [f for f in data if f.startswith("poster")]
+        self.assertEqual(len(posters), 1, data)
+        self.assertEqual(set(data), {posters[0], "wallpaper-Index.plist"})
+        # the system wallpaper was switched to the poster that is on disk (not to a file deleted afterwards)
+        last_set = self.read("set-wallpaper.log").splitlines()[-1]
+        self.assertEqual(last_set, self.h("Library/Application Support/Claude City/" + posters[0]))
         self.assertIn("bootstrap", self.calls())
         self.assertEqual(os.listdir(self.tmpdir), [], "temporary files left behind")
 
@@ -91,9 +97,13 @@ class InstallerTest(unittest.TestCase):
         write(self.h("Library/Logs/ClaudeCity.log"), "a long log")
         write(self.h("Applications/Claude City.app/Contents/Resources/stale-file"), "from the previous version")
         write(self.store, "OUR POSTER")
+        first = self.read("set-wallpaper.log").splitlines()[-1]
+        time.sleep(1.1)                                   # posters are named by the second
         r = self.run_sh("install", self.app)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assert_installed()
+        self.assertNotEqual(self.read("set-wallpaper.log").splitlines()[-1], first, "the poster path must change")
+        self.assertFalse(os.path.exists(first), "the previous poster should be deleted after switching")
         self.assertFalse(os.path.exists(self.h("Applications/Claude City.app/Contents/Resources/stale-file")))
         self.assertFalse(os.path.exists(self.h("Library/Logs/ClaudeCity.log")), "the old log should go")
         self.assertEqual(self.read("Library/Application Support/Claude City/wallpaper-Index.plist"), "CURRENT")
