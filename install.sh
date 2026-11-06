@@ -23,7 +23,7 @@ main() {
   set -euo pipefail
 
   VERSION="1.0.0"
-  SHA256="__SHA256__"
+  SHA256="d95371632a738780a083f95c98f9dd59485c19d504942fa74d77c86c23bb68c5"
   REPO="B0yko/claude-parachute-wallpaper"
   ZIP_URL="https://github.com/$REPO/releases/download/v$VERSION/Claude-Parachute-$VERSION.zip"
 
