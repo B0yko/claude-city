@@ -92,7 +92,10 @@ cmd_gif() {
   cp "$BUILD/still/t22.00.png" "$ROOT/docs/screenshot.png"
 }
 
+# the repo lives on the personal account B0yko; its token from the gh keyring serves both gh and git (gh is the git
+# credential helper), without switching the active gh account
 gh_b0yko() { GH_TOKEN="$(gh auth token -u B0yko)" gh "$@"; }
+git_b0yko() { GH_TOKEN="$(gh auth token -u B0yko)" git -C "$ROOT" "$@"; }
 
 cmd_release() {
   local version="${1:-}"
@@ -111,7 +114,7 @@ cmd_release() {
   /bin/bash "$ROOT/install.sh" check --from "$zip"
   git -C "$ROOT" commit -qam "Release $version" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
   git -C "$ROOT" tag -a "v$version" -m "Claude Parachute $version"
-  git -C "$ROOT" push -q origin main "v$version"
+  git_b0yko push -q origin main "v$version"
   gh_b0yko release create "v$version" "$zip" --repo "$REPO" --title "Claude Parachute $version" \
     --notes-file "$ROOT/docs/release-notes.md"
   say "released v$version"
