@@ -112,7 +112,7 @@ cmd_release() {
   # pin the release in the public installer
   sed -i '' -e "s/^  VERSION=\".*\"/  VERSION=\"$version\"/" -e "s/^  SHA256=\".*\"/  SHA256=\"$sha\"/" "$ROOT/install.sh"
   /bin/bash "$ROOT/install.sh" check --from "$zip"
-  git -C "$ROOT" commit -qam "Release $version" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+  git -C "$ROOT" commit -qam "Release $version"
   git -C "$ROOT" tag -a "v$version" -m "Claude Parachute $version"
   git_b0yko push -q origin main "v$version"
   gh_b0yko release create "v$version" "$zip" --repo "$REPO" --title "Claude Parachute $version" \
